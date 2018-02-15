@@ -1,0 +1,89 @@
+
+""" calculate primary expression levels """ 
+
+rule salmon_idx:
+    """
+    build salmon on pre-mRNA fasta
+    Salmon v0.9.1
+    """
+    input:
+      fasta = path.join(DBASES, "primary_transcripts.fa"),
+      gtf = path.join(DBASES, "primary_transcripts.gtf")
+    output:
+      path.join(DBASES, "salmon", "hash.bin")
+    params:
+      outname = path.join(DBASES, "salmon"),
+      job_name = "salmon_idx",
+      memory = "select[mem>50] rusage[mem=50]",
+    log:
+      path.join(DBASES, "logs", "generate_primary_transcript_salmon_index.txt")
+    threads: 12
+    resources: all_threads=12
+    shell:
+      """
+      salmon index \
+        -p {threads} \
+        -t {input.fasta} \
+        --type "quasi" \
+        -i {params.outname}
+      """
+
+rule salmon_primary:
+    """
+    run salmon on pre-mRNA indexes
+    Salmon v0.9.1
+    """
+    input:
+      idx = path.join(DBASES, "salmon", "hash.bin"),
+      R1 = path.join(DATA, "raw_data", "{sample}.fastq.gz"),
+      gtf = path.join(DBASES, "primary_transcripts.gtf")
+    output:
+      path.join("{data}", "salmon", "{sample}", "quant.sf")
+    params:
+      idx = path.join(DBASES, "salmon"),
+      out_dir = path.join("{data}", "salmon", "{sample}"),
+      job_name = "salmon_fishing_{sample}",
+      memory = "select[mem>30] rusage[mem=30]",
+    log:
+      path.join("{data}", "salmon", "logs", "{sample}")
+    threads: 12
+    resources: all_threads=12
+    shell:
+      """
+      salmon quant \
+        -i {params.idx} \
+        -r {input.R1} \
+        -o {params.out_dir} \
+        -p {threads} \
+        --numBootstraps 50 \
+        --libType 'SR' \
+        -g {input.gtf}
+      """
+
+rule primary_transcript_gtf:
+    """
+    Append primary transcript records to GTF annotations
+    src/add_primary_transcripts.py
+    and extract out transcript.fa
+    """
+    input:
+      TRANSCRIPTS
+    output:
+      gtf = path.join(DBASES, "primary_transcripts.gtf"), 
+      fa = path.join(DBASES, "primary_transcripts.fa") 
+    params:
+      genome = GENOME,
+      job_name = "gen_primary_txs",
+      memory = "select[mem>4] rusage[mem=4]",
+    log:
+      path.join(DBASES, "logs", "generate_primary_transcript_db.txt")
+    resources: all_threads=1
+    shell:
+      """
+      python3 {SRC}/add_primary_transcripts.py \
+        -i {input} \
+        -r "gene" \
+        -a "gene_id" > {output.gtf}
+
+      gffread -w {output.fa} -g {params.genome} {output.gtf}
+      """

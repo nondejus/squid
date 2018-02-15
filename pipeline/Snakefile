@@ -1,0 +1,29 @@
+shell.executable("/bin/bash")
+shell.prefix("source ~/.bash_profile; ")
+from os import path
+from glob import glob
+import sys
+
+""" Snakemake pipeline for primary expression quanitification """ 
+
+configfile: "config.yaml"
+  
+DATA = config["DATA"]
+SRC = config["SRC"]
+DBASES = config["DBASES"]
+GENOME = config["GENOME"]
+TRANSCRIPTS = config["TRANSCRIPTS"]
+
+SAMPLES, = glob_wildcards(path.join(DATA, 
+                    "raw_data",
+                    "{samples}.fastq.gz"))
+
+print("processing the following libraries")
+[print("library {}".format(x)) for x in SAMPLES]
+
+rule all:
+  input:
+    expand(path.join(DATA, "salmon", "{sample}", "quant.sf"),
+            sample = SAMPLES),
+
+include: "rules/primary_expression.snake"

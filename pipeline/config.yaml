@@ -1,0 +1,20 @@
+# config for pre-mRNA quantification snakemake pipeline #
+ 
+# directory for data
+DATA: 
+  "../data"
+
+# directory for auxillary scripts
+SRC: 
+  "../src" 
+
+# directory for databases
+DBASES: 
+  "../dbases" 
+
+GENOME:
+  "/vol3/home/riemondy/Projects/shared_dbases/genomes/GRCh38.primary_assembly.genome.fa"
+
+TRANSCRIPTS:
+  "/vol3/home/riemondy/Projects/shared_dbases/annotation/gencode.v26.primary_assembly.annotation.gtf"
+
