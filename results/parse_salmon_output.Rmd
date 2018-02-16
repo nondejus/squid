@@ -1,0 +1,135 @@
+---
+title: "Parse salmon output"
+author: "Kent Riemondy RBI"
+date: "2/16/2018"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_collapsed: false
+    theme: cosmo
+    highlight: tango
+    fig_caption: true
+    code_folding: show
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(cache = FALSE)
+```
+
+## Examine pre-mRNA and mature mRNA abundances
+ 
+## load in data
+
+Salmon `quant.sf` output should be located in the `data` directory. The `primary_transcripts.gtf` annotation file should be located in the `dbases` directory. 
+
+```{r load_libs, message = F, warning = F}
+library(tidyverse)
+library(rtracklayer)
+data_dir <- file.path("..", "data")
+db_dir <- file.path("..", "dbases")
+```
+
+Read in all of the salmon files in the `data` directory, extract the sample names and bind into a single dataframe.
+
+```{r load_dat, message = F}
+files <- dir(file.path(data_dir, "salmon"),
+            recursive = T,
+            pattern = "*quant.sf",
+            full.names = T)
+
+dat <- map(files, read_tsv)
+
+# name with libraryID
+names(dat) <- dirname(files) %>% 
+  str_split(., "[/]", simplify = T) %>% 
+  .[, 4]
+
+dat <- bind_rows(dat, .id = "libraryID")
+dat
+```
+
+The `premRNA` transcripts are marked with a `^pre_` prefix. Next add a column to indicate premRNA or mature mRNA transcript annotation
+
+```{r select_primary }
+
+# drop unneeded data
+dat <- select(dat, -c(Length, EffectiveLength, NumReads))
+
+# classify transcripts as primary or mature
+dat <- mutate(dat, 
+              type = ifelse(str_detect(Name, "^pre_"), 
+                            "primary", 
+                            "mature"))
+dat
+```
+
+Next load in the `.gtf` and extract out the gene_id and transcript_id fields to add to the data.frame. 
+
+```{r get_gtf_attrs}
+gtf <- import(file.path(db_dir, "primary_transcripts.gtf"))
+gtf <- as.data.frame(gtf)
+gtf <- dplyr::filter(gtf, type == "transcript")
+gene2tx <- gtf[, c("gene_id", "transcript_id")]
+gene2tx <- unique(gene2tx)
+
+gene2tx
+```
+
+```{r join_gene_ids}
+dat <- left_join(dat, 
+                 gene2tx, 
+                 by = c("Name" = "transcript_id"))
+dat
+```
+
+
+TPMs will be summed for all mature mRNA transcripts to generate a gene-level TPM value. Similarly all primary transcripts for each gene will be summed. 
+
+```{r sum_tpms}
+# sum primary and mature TPMs for each gene 
+tpm_summary <- group_by(dat, gene_id, libraryID, type) %>% 
+  summarize(total_tpm = sum(TPM)) %>% 
+  ungroup() 
+
+#convert long data to wide
+generate_tpm_matrix <- function(df,
+                                transcript_type = "primary"){
+                                  
+  res <- dplyr::filter(df,
+               type == transcript_type)    
+ 
+  res <- dplyr::select(res, 
+                       gene_id, 
+                       total_tpm,
+                       libraryID)
+  res <- spread(res, 
+                libraryID, 
+                total_tpm)
+  
+  # convert to real matrix
+  res <- as.data.frame(res)
+  rownames(res) <- res[, 1]
+  res[, 1] <- NULL
+  res <- as.matrix(res)
+  res
+}
+
+
+primary_txs <- generate_tpm_matrix(tpm_summary, transcript_type = "primary")
+mature_txs <- generate_tpm_matrix(tpm_summary, transcript_type = "mature")
+
+head(primary_txs)
+
+head(mature_txs)
+```
+
+Lastly write out the generated matrices and a tidy format file. 
+
+```{r write_it_out}
+write.table(as.data.frame(primary_txs), "pre-mRNA-tpms.tsv", quote = F, sep = "\t")
+write.table(as.data.frame(mature_txs), "mature-mRNA-tpms.tsv", quote = F, sep = "\t")
+write_tsv(tpm_summary, "tpm_summary_tidy_format.tsv")
+```
