@@ -1,5 +1,5 @@
 
-## Salmon QUantification of Introns Dynamics (SQUID)
+## Salmon QUantification of Intron Dynamics (SQUID)
 
 Squid uses `salmon` to calculate premRNA and mature mRNA expression estimates. 
 
