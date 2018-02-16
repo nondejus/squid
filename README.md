@@ -1,7 +1,7 @@
 
-## Salmon QUantification of Introns in Nascent Transcripts (SQUINT)
+## Salmon QUantification of Introns Dynamics (SQUID)
 
-Squint uses `salmon` to calculate premRNA and mature mRNA expression estimates. 
+Squid uses `salmon` to calculate premRNA and mature mRNA expression estimates. 
 
 ## Install
 
@@ -11,10 +11,10 @@ git clone git@github.com:rnabioco/squint
 
 ## Usage
 
-Squint is a `snakemake` pipeline that is written for use on `tesla`. To use `squint` 
+Squid is a `snakemake` pipeline that is written for use on `tesla`. To use `squind` 
 perform the following steps.
 
-1) `cd` to the `squint` directory and edit the `config.yaml` file to set the `TRANSCRIPTS` and `GENOME` variables to the correct 
+1) `cd` to the `squind` directory and edit the `config.yaml` file to set the `TRANSCRIPTS` and `GENOME` variables to the correct 
    genome assembly and transcriptome. 
 
 i.e.
