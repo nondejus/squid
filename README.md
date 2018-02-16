@@ -6,7 +6,7 @@ Squint uses `salmon` to calculate premRNA and mature mRNA expression estimates.
 ## Install
 
 ```bash
-git clone git@github.com:kriemo/squint
+git clone git@github.com:rnabioco/squint
 ```
 
 ## Usage
@@ -14,8 +14,8 @@ git clone git@github.com:kriemo/squint
 Squint is a `snakemake` pipeline that is written for use on `tesla`. To use `squint` 
 perform the following steps.
 
-1) `cd` to the `squint` directory and edit the `config.yaml` file to point the transcripts and genome to the correct 
-   genome assemblies and transcriptomes. 
+1) `cd` to the `squint` directory and edit the `config.yaml` file to set the `TRANSCRIPTS` and `GENOME` variables to the correct 
+   genome assembly and transcriptome. 
 
 i.e.
 ```bash
@@ -33,30 +33,30 @@ i.e. this works
 salmon -h
 ```
 
-if you do not have the salmon binaries you can either download them yourself from [here]((https://github.com/COMBINE-lab/salmon/releases/download/v0.9.1/Salmon-0.9.1_linux_x86_64.tar.gz)
-make sure to add the `bin` folder to your PATH in your bashrc. 
+If you do not have `salmon` already you can download a precompiled binary for linux from [here]((https://github.com/COMBINE-lab/salmon/releases/download/v0.9.1/Salmon-0.9.1_linux_x86_64.tar.gz)
+and make sure to add the `bin` folder to your PATH in your bashrc. 
 
 3) move your `fastq.gz` files into the `data/raw_data` directory. `Snakemake` will autodetect these files and process
 them, as long as the filenames end with `.fastq.gz`. If you need to remove adapters or perform any trimming, do this
 before moving your fastq files into the `data/raw_data` folder.
 
 4) Use snakemake to run all of your samples. `Snakemake` will take care of submitting all of your jobs and will track if
-a file had successfully generated. First test that snakemake recognizes your files.
+a file has been successfully generated. First test that snakemake recognizes your files.
 
 change working directory to the `pipeline` folder
 ```bash
 cd pipeline
 ```
 
-execute a dry snakemake run to see all of the commands and files that will be processed
+Execute a dry snakemake run to see all of the commands and files that will be processed
 
 ```bash
 snakemake -npr 
 ```
 
-you should see many lines of output that show all of the commands that snakemake will run
+You should see many lines of output that show all of the commands that snakemake will run
 
-
+An example:
 ```bash
 processing the following libraries
 library test
@@ -101,16 +101,17 @@ Job counts:
     4
 ```
 
-to actually run all of these commands we submit 1 job to tesla
+To actually run all of these commands we submit 1 job to tesla using the
+`snakecharmer.sh` script.
 
 ```bash
 bsub < snakecharmer.sh
 ```
 
-this script will run the snakemake pipeline. By default the script will only use up to 24 cores at a time. 
+This script will run the snakemake pipeline. By default the script will only use up to 24 cores at a time. 
 You can modify this limit if necessary by editing the following in `snakecharmer.sh`
 
-Change jobs # and the all_threads argument to modify the number of cores or jobs run at one time. 
+Change jobs # and the all_threads argument to modify the number of jobs or cores run at one time. 
 ```bash
 snakemake --drmaa "$args" \
     --snakefile Snakefile \
